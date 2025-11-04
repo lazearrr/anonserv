@@ -1,0 +1,177 @@
+import socket
+import sys
+import os
+
+def readFile(completePath):
+    try:
+        #completePath = f"{fullPath}/{strippedPath}"
+        print("completePath:", completePath)
+        with open(completePath, "rb") as content:
+            payload = content.read()
+            content_length = len(payload)
+        return payload, content_length
+    except FileNotFoundError as f:
+        preEncodedPayload = f"Error 404: Page Not Found \n{f}"
+        payload = preEncodedPayload.encode("UTF-8")
+        content_length = len(payload)
+        return payload, content_length
+    except Exception as e:
+        print(f"Unknown Error: {e}")
+
+
+def decodeData(data):
+    try:
+        if not data:
+            print("Not Data Received")
+        decodedData = data.decode("ISO-8859-1")
+        splitDecodedData = decodedData.split()
+        fullPath = splitDecodedData[1]
+        strippedPath = fullPath.strip("/")
+        splitFileName = strippedPath.split(".")
+        fileExtension = splitFileName[-1]
+        return decodedData, fileExtension, strippedPath, splitDecodedData
+    except IndexError:
+        print("list index out of range")
+
+def buildHTML(files):
+    homePage = []
+    homePage.append("<html><body><h1>anonserv</h1>")
+    for file in files:
+        middle = f"<a href=\"{file}\">{file}</a><br>"
+        homePage.append(middle)
+    end = "</body></html>"
+    homePage.append(end)
+    html = "".join(homePage)
+    return html
+
+def buildSocket(port):
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('', port))
+    s.listen()
+    return s
+
+def acceptConnection(s, conn_count):
+    conn_count += 1
+    new_conn, host = s.accept()
+    new_socket = new_conn
+    data = new_socket.recv(4096)
+    return data, host, new_socket, conn_count
+
+def buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse):
+            print("INCOMING CONNECTION")
+            print("Request Number:", conn_count)
+            print("IP Address:", host[0])
+            print("Request Type: ", splitDecodedData[0],"\n")
+            print("REQUEST")
+            print(decodedData)
+            print("RESPONSE HEADER:")
+            print(preEncodedResponse)
+            print("---------------------------------------------------------------------------------------------------------------------")
+
+
+def startServer(port, folder):
+    print("-----------------------------------")
+    print("|                                 |")
+    print("| anonserv listening for requests |")
+    print("|                                 |")
+    print("-----------------------------------")
+    conn_count = 0
+    while True:
+        #try:
+        m = True
+        s = buildSocket(port)
+
+        while m == True:
+            data, host, new_socket, conn_count = acceptConnection(s, conn_count)
+            if data == "":
+                new_socket.close()
+
+            try:
+                decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
+
+            except TypeError as e:
+                print("Cannot unpack because decodedData function probably returned nothing since connection has been sitting idle")
+                print(e)
+            path = f".{folder}"
+            fullPath = f"{path}{strippedPath}"
+            print("Full Path:", {fullPath})
+
+            entirePath = [{fullPath}]
+
+            print("strippedPath:", {strippedPath})
+
+            if os.path.isdir(fullPath):
+                if strippedPath != " ":
+                    entirePath.append(f"/{strippedPath}")
+                print("Entire Path:")
+                print(entirePath)
+                files = os.listdir(fullPath)
+                html = buildHTML(files)
+                preEncodedPayload = html 
+                content_type = "text/html"
+                payload = preEncodedPayload.encode("ISO-8859-1")
+                content_length = len(payload)
+
+            elif fileExtension == "txt":
+                content_type = "text/plain"
+                payload, content_length = readFile(fullPath)
+
+            elif fileExtension == "html":
+                content_type = "text/html"
+                payload, content_length = readFile(fullPath)
+
+            elif fileExtension == "ico":
+                content_type = "image/vnd.microsoft.icon"
+                payload, content_length = readFile(fullPath)
+
+            elif fileExtension == "pdf":
+                content_type = "application/pdf"
+                payload, content_length = readFile(fullPath)
+
+            elif fileExtension == "jpeg":
+                content_type = "image/jpeg"
+                payload, content_length = readFile(fullPath) #strippedPath, path)
+
+            elif fileExtension == "png":
+                content_type = "image/png"
+                payload, content_length = readFile(fullPath)
+
+            elif fileExtension == "gif":
+                content_type = "image/gif"
+                payload, content_length = readFile(fullPath)
+
+            elif fileExtension == "":
+                html = buildHTML(files)
+                preEncodedPayload = html 
+                content_type = "text/html"
+                payload = preEncodedPayload.encode("ISO-8859-1")
+                content_length = len(payload)
+
+            else:
+                content_type = "text/plain"
+                payload, content_length = readFile(fullPath)
+
+
+            preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
+            encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
+
+            print("Stripped Path:", strippedPath)            
+            buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse)
+
+            try:
+                new_socket.sendall(encodedHeaders)
+                new_socket.sendall(payload)
+                new_socket.close()
+                s.close()
+                m = False
+            except BrokenPipeError:
+                new_socket.close()
+                s.close()
+                m = False
+
+if __name__ == "__main__":
+    port = int(sys.argv[1])
+    folder = sys.argv[2]
+    startServer(port, folder)
+
