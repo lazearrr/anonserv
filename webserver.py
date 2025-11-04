@@ -4,8 +4,6 @@ import os
 
 def readFile(completePath):
     try:
-        #completePath = f"{fullPath}/{strippedPath}"
-        print("completePath:", completePath)
         with open(completePath, "rb") as content:
             payload = content.read()
             content_length = len(payload)
@@ -22,7 +20,7 @@ def readFile(completePath):
 def decodeData(data):
     try:
         if not data:
-            print("Not Data Received")
+            print("No Data Received")
         decodedData = data.decode("ISO-8859-1")
         splitDecodedData = decodedData.split()
         fullPath = splitDecodedData[1]
@@ -95,15 +93,11 @@ def startServer(port, folder):
                 print(e)
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
-            print("Full Path:", {fullPath})
 
             entirePath = [{fullPath}]
 
-            print("strippedPath:", {strippedPath})
 
             if os.path.isdir(fullPath):
-                if strippedPath != " ":
-                    entirePath.append(f"/{strippedPath}")
                 print("Entire Path:")
                 print(entirePath)
                 files = os.listdir(fullPath)
@@ -155,8 +149,6 @@ def startServer(port, folder):
 
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
             encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
-
-            print("Stripped Path:", strippedPath)            
             buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse)
 
             try:
