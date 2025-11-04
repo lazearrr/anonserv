@@ -67,6 +67,59 @@ def buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse
             print(preEncodedResponse)
             print("---------------------------------------------------------------------------------------------------------------------")
 
+def buildPayload(fileExtension, fullPath):
+    if os.path.isdir(fullPath):
+        #print("Entire Path:")
+        #print(entirePath)
+        files = os.listdir(fullPath)
+        html = buildHTML(files)
+        preEncodedPayload = html 
+        content_type = "text/html"
+        payload = preEncodedPayload.encode("ISO-8859-1")
+        content_length = len(payload)
+
+
+    elif fileExtension == "txt":
+        content_type = "text/plain"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "html":
+        content_type = "text/html"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "ico":
+        content_type = "image/vnd.microsoft.icon"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "pdf":
+        content_type = "application/pdf"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "jpeg":
+        content_type = "image/jpeg"
+        payload, content_length = readFile(fullPath) #strippedPath, path)
+
+    elif fileExtension == "png":
+        content_type = "image/png"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "gif":
+        content_type = "image/gif"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "":
+        html = buildHTML(files)
+        preEncodedPayload = html 
+        content_type = "text/html"
+        payload = preEncodedPayload.encode("ISO-8859-1")
+        content_length = len(payload)
+
+    else:
+        content_type = "text/plain"
+        payload, content_length = readFile(fullPath)
+
+    return payload, content_length, content_type
+
 
 def startServer(port, folder):
     print("-----------------------------------")
@@ -93,58 +146,56 @@ def startServer(port, folder):
                 print(e)
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
+            payload, content_length, content_type = buildPayload(fileExtension, fullPath)
 
-            entirePath = [{fullPath}]
+            #if os.path.isdir(fullPath):
+                #print("Entire Path:")
+                #print(entirePath)
+                #files = os.listdir(fullPath)
+                #html = buildHTML(files)
+                #preEncodedPayload = html 
+                #content_type = "text/html"
+                #payload = preEncodedPayload.encode("ISO-8859-1")
+                #content_length = len(payload)
 
+            #elif fileExtension == "txt":
+                #content_type = "text/plain"
+                #payload, content_length = readFile(fullPath)
 
-            if os.path.isdir(fullPath):
-                print("Entire Path:")
-                print(entirePath)
-                files = os.listdir(fullPath)
-                html = buildHTML(files)
-                preEncodedPayload = html 
-                content_type = "text/html"
-                payload = preEncodedPayload.encode("ISO-8859-1")
-                content_length = len(payload)
+            #elif fileExtension == "html":
+                #content_type = "text/html"
+                #payload, content_length = readFile(fullPath)
 
-            elif fileExtension == "txt":
-                content_type = "text/plain"
-                payload, content_length = readFile(fullPath)
+            #elif fileExtension == "ico":
+                #content_type = "image/vnd.microsoft.icon"
+                #payload, content_length = readFile(fullPath)
 
-            elif fileExtension == "html":
-                content_type = "text/html"
-                payload, content_length = readFile(fullPath)
+            #elif fileExtension == "pdf":
+                #content_type = "application/pdf"
+                #payload, content_length = readFile(fullPath)
 
-            elif fileExtension == "ico":
-                content_type = "image/vnd.microsoft.icon"
-                payload, content_length = readFile(fullPath)
+            #elif fileExtension == "jpeg":
+                #content_type = "image/jpeg"
+                #payload, content_length = readFile(fullPath) #strippedPath, path)
 
-            elif fileExtension == "pdf":
-                content_type = "application/pdf"
-                payload, content_length = readFile(fullPath)
+            #elif fileExtension == "png":
+                #content_type = "image/png"
+                #payload, content_length = readFile(fullPath)
 
-            elif fileExtension == "jpeg":
-                content_type = "image/jpeg"
-                payload, content_length = readFile(fullPath) #strippedPath, path)
+            #elif fileExtension == "gif":
+                #content_type = "image/gif"
+                #payload, content_length = readFile(fullPath)
 
-            elif fileExtension == "png":
-                content_type = "image/png"
-                payload, content_length = readFile(fullPath)
+            #elif fileExtension == "":
+                #html = buildHTML(files)
+                #preEncodedPayload = html 
+                #content_type = "text/html"
+                #payload = preEncodedPayload.encode("ISO-8859-1")
+                #content_length = len(payload)
 
-            elif fileExtension == "gif":
-                content_type = "image/gif"
-                payload, content_length = readFile(fullPath)
-
-            elif fileExtension == "":
-                html = buildHTML(files)
-                preEncodedPayload = html 
-                content_type = "text/html"
-                payload = preEncodedPayload.encode("ISO-8859-1")
-                content_length = len(payload)
-
-            else:
-                content_type = "text/plain"
-                payload, content_length = readFile(fullPath)
+            #else:
+                #content_type = "text/plain"
+                #payload, content_length = readFile(fullPath)
 
 
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
