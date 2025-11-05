@@ -78,41 +78,33 @@ def buildPayload(fileExtension, fullPath):
 
     elif fileExtension == "txt":
         content_type = "text/plain"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "html":
         content_type = "text/html"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "ico":
         content_type = "image/vnd.microsoft.icon"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "pdf":
         content_type = "application/pdf"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "jpeg":
         content_type = "image/jpeg"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "png":
         content_type = "image/png"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "gif":
         content_type = "image/gif"
-        completePath = ""
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "":
-        completePath = ""
         html = buildHTML(files)
         preEncodedPayload = html 
         content_type = "text/html"
@@ -120,11 +112,10 @@ def buildPayload(fileExtension, fullPath):
         content_length = len(payload)
 
     else:
-        completePath = ""
         content_type = "text/plain"
         payload, content_length = readFile(fullPath)
 
-    return payload, content_length, content_type, completePath
+    return payload, content_length, content_type
 
 
 def startServer(port, folder):
@@ -144,11 +135,6 @@ def startServer(port, folder):
         path = f".{folder}"
         fullPath = f"{path}{strippedPath}"
         
-        complete_path = ""
-        nestedFolderPre = [complete_path,strippedPath]
-        nestedFolder = "/".join(nestedFolderPre)
-        print("Nested Folder:", nestedFolder)
-
         while m == True:
 
             try:
@@ -160,7 +146,7 @@ def startServer(port, folder):
 
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
-            payload, content_length, content_type, completePath = buildPayload(fileExtension, fullPath)
+            payload, content_length, content_type = buildPayload(fileExtension, fullPath)
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
             encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
             buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse)
