@@ -1,4 +1,5 @@
-fakeDir/*
+fakeDir/
+fakeDir/test.txt
 favicon.ico
 funnytweet.png
 mockingkid.png
