@@ -74,6 +74,7 @@ def buildPayload(fileExtension, fullPath):
         content_type = "text/html"
         payload = preEncodedPayload.encode("ISO-8859-1")
         content_length = len(payload)
+        completePath = fullPath
 
     elif fileExtension == "txt":
         content_type = "text/plain"
@@ -114,7 +115,7 @@ def buildPayload(fileExtension, fullPath):
         content_type = "text/plain"
         payload, content_length = readFile(fullPath)
 
-    return payload, content_length, content_type
+    return payload, content_length, content_type, complete_path
 
 
 def startServer(port, folder):
@@ -134,7 +135,8 @@ def startServer(port, folder):
         path = f".{folder}"
         fullPath = f"{path}{strippedPath}"
 
-        FINAL_PATH = [{fullPath}]
+        nestedFolderPre = [{completePath},{strippedPath}]
+        nestedFolder = nestedFolderPre.join("/")
 
         while m == True:
 
@@ -147,7 +149,7 @@ def startServer(port, folder):
 
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
-            payload, content_length, content_type = buildPayload(fileExtension, fullPath)
+            payload, content_length, content_type, complete_path = buildPayload(fileExtension, fullPath)
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
             encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
             buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse)
