@@ -164,6 +164,7 @@ def startServer(port, folder):
                 s.close()
                 m = False
 
+# start program
 if __name__ == "__main__":
     port = int(sys.argv[1])
     folder = sys.argv[2]
