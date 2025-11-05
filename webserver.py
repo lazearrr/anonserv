@@ -69,8 +69,6 @@ def buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse
 
 def buildPayload(fileExtension, fullPath):
     if os.path.isdir(fullPath):
-        #print("Entire Path:")
-        #print(entirePath)
         files = os.listdir(fullPath)
         html = buildHTML(files)
         preEncodedPayload = html 
@@ -133,10 +131,26 @@ def startServer(port, folder):
         m = True
         s = buildSocket(port)
 
+        data, host, new_socket, conn_count = acceptConnection(s, conn_count)
+        
+        try:
+            decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
+
+        except TypeError as e:
+            print("Cannot unpack because decodedData function probably returned nothing since connection has been sitting idle")
+            print(e)
+            
+        path = f".{folder}"
+        fullPath = f"{path}{strippedPath}"
+
+        FINAL_PATH = [{fullPath}]
+
+        print(decodedData)
+
+        print(decodedData.split())
+
+
         while m == True:
-            data, host, new_socket, conn_count = acceptConnection(s, conn_count)
-            if data == "":
-                new_socket.close()
 
             try:
                 decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
@@ -144,60 +158,10 @@ def startServer(port, folder):
             except TypeError as e:
                 print("Cannot unpack because decodedData function probably returned nothing since connection has been sitting idle")
                 print(e)
+
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
             payload, content_length, content_type = buildPayload(fileExtension, fullPath)
-
-            #if os.path.isdir(fullPath):
-                #print("Entire Path:")
-                #print(entirePath)
-                #files = os.listdir(fullPath)
-                #html = buildHTML(files)
-                #preEncodedPayload = html 
-                #content_type = "text/html"
-                #payload = preEncodedPayload.encode("ISO-8859-1")
-                #content_length = len(payload)
-
-            #elif fileExtension == "txt":
-                #content_type = "text/plain"
-                #payload, content_length = readFile(fullPath)
-
-            #elif fileExtension == "html":
-                #content_type = "text/html"
-                #payload, content_length = readFile(fullPath)
-
-            #elif fileExtension == "ico":
-                #content_type = "image/vnd.microsoft.icon"
-                #payload, content_length = readFile(fullPath)
-
-            #elif fileExtension == "pdf":
-                #content_type = "application/pdf"
-                #payload, content_length = readFile(fullPath)
-
-            #elif fileExtension == "jpeg":
-                #content_type = "image/jpeg"
-                #payload, content_length = readFile(fullPath) #strippedPath, path)
-
-            #elif fileExtension == "png":
-                #content_type = "image/png"
-                #payload, content_length = readFile(fullPath)
-
-            #elif fileExtension == "gif":
-                #content_type = "image/gif"
-                #payload, content_length = readFile(fullPath)
-
-            #elif fileExtension == "":
-                #html = buildHTML(files)
-                #preEncodedPayload = html 
-                #content_type = "text/html"
-                #payload = preEncodedPayload.encode("ISO-8859-1")
-                #content_length = len(payload)
-
-            #else:
-                #content_type = "text/plain"
-                #payload, content_length = readFile(fullPath)
-
-
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
             encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
             buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse)
@@ -208,6 +172,7 @@ def startServer(port, folder):
                 new_socket.close()
                 s.close()
                 m = False
+
             except BrokenPipeError:
                 new_socket.close()
                 s.close()
