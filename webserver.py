@@ -25,8 +25,7 @@ def decodeData(data):
         splitDecodedData = decodedData.split()
         fullPath = splitDecodedData[1]
         strippedPath = fullPath.strip("/")
-        splitFileName = strippedPath.split(".")
-        fileExtension = splitFileName[-1]
+        fileExtension = strippedPath.split(".")[-1]
         return decodedData, fileExtension, strippedPath, splitDecodedData
     except IndexError:
         print("list index out of range")
@@ -76,7 +75,6 @@ def buildPayload(fileExtension, fullPath):
         payload = preEncodedPayload.encode("ISO-8859-1")
         content_length = len(payload)
 
-
     elif fileExtension == "txt":
         content_type = "text/plain"
         payload, content_length = readFile(fullPath)
@@ -95,7 +93,7 @@ def buildPayload(fileExtension, fullPath):
 
     elif fileExtension == "jpeg":
         content_type = "image/jpeg"
-        payload, content_length = readFile(fullPath) #strippedPath, path)
+        payload, content_length = readFile(fullPath)
 
     elif fileExtension == "png":
         content_type = "image/png"
@@ -127,28 +125,16 @@ def startServer(port, folder):
     print("-----------------------------------")
     conn_count = 0
     while True:
-        #try:
         m = True
         s = buildSocket(port)
 
         data, host, new_socket, conn_count = acceptConnection(s, conn_count)
-        
-        try:
-            decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
+        decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
 
-        except TypeError as e:
-            print("Cannot unpack because decodedData function probably returned nothing since connection has been sitting idle")
-            print(e)
-            
         path = f".{folder}"
         fullPath = f"{path}{strippedPath}"
 
         FINAL_PATH = [{fullPath}]
-
-        print(decodedData)
-
-        print(decodedData.split())
-
 
         while m == True:
 
