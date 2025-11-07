@@ -30,11 +30,13 @@ def decodeData(data):
     except IndexError:
         print("list index out of range")
 
-def buildHTML(files):
+def buildHTML(files, fullPath):
+    if os.path.isdir(fullPath) and fullPath != "./":
+        fullPath = f"{fullPath}/"
     homePage = []
     homePage.append("<html><body><h1>anonserv</h1>")
     for file in files:
-        middle = f"<a href=\"{file}\">{file}</a><br>"
+        middle = f"<a href=\"{fullPath}{file}\">{file}</a><br>"
         homePage.append(middle)
     end = "</body></html>"
     homePage.append(end)
@@ -68,13 +70,14 @@ def buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse
 
 def buildPayload(fileExtension, fullPath):
     if os.path.isdir(fullPath):
+        print(fullPath)
         files = os.listdir(fullPath)
-        html = buildHTML(files)
+        html = buildHTML(files, fullPath)
         preEncodedPayload = html 
         content_type = "text/html"
         payload = preEncodedPayload.encode("ISO-8859-1")
         content_length = len(payload)
-        completePath = fullPath
+        currentDir = fullPath
 
     elif fileExtension == "txt":
         content_type = "text/plain"
@@ -90,6 +93,10 @@ def buildPayload(fileExtension, fullPath):
 
     elif fileExtension == "pdf":
         content_type = "application/pdf"
+        payload, content_length = readFile(fullPath)
+
+    elif fileExtension == "webp":
+        content_type = "image/webp"
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "jpeg":
@@ -119,11 +126,13 @@ def buildPayload(fileExtension, fullPath):
 
 
 def startServer(port, folder):
-    print("-----------------------------------")
-    print("|                                 |")
-    print("| anonserv listening for requests |")
-    print("|                                 |")
-    print("-----------------------------------")
+    splash = r"""
+   __ _ _ __   ___  _ __  ___  ___ _ ____   __
+  / _` | '_ \ / _ \| '_ \/ __|/ _ \ '__\ \ / /
+ | (_| | | | | (_) | | | \__ \  __/ |   \ V /
+  \__,_|_| |_|\___/|_| |_|___/\___|_|    \_/  
+    """
+    print(splash)
     conn_count = 0
     while True:
         m = True
