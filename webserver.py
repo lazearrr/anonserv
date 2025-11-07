@@ -2,6 +2,7 @@ import socket
 import sys
 import os
 
+#Read file at <completePath>
 def readFile(completePath):
     try:
         with open(completePath, "rb") as content:
@@ -31,8 +32,8 @@ def decodeData(data):
         print("list index out of range")
 
 def buildHTML(files, fullPath):
-    fullPath = f"{fullPath}/"
-    print(fullPath)
+    if os.path.isdir(fullPath) and fullPath != "./":
+        fullPath = f"{fullPath}/"
     homePage = []
     homePage.append("<html><body><h1>anonserv</h1>")
     for file in files:
@@ -80,6 +81,7 @@ def buildPayload(fileExtension, fullPath):
 
     elif fileExtension == "txt":
         content_type = "text/plain"
+        print("fullPath:", fullPath)
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "html":
@@ -153,8 +155,6 @@ def startServer(port, folder):
             
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
-            print(strippedPath)
-            print(fullPath)
             payload, content_length, content_type = buildPayload(fileExtension, fullPath)
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
             encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
