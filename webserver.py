@@ -31,8 +31,8 @@ def decodeData(data):
         print("list index out of range")
 
 def buildHTML(files, fullPath):
-    if os.path.isdir(fullPath) and fullPath != "./":
-        fullPath = f"{fullPath}/"
+    fullPath = f"{fullPath}/"
+    print(fullPath)
     homePage = []
     homePage.append("<html><body><h1>anonserv</h1>")
     for file in files:
@@ -70,7 +70,6 @@ def buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse
 
 def buildPayload(fileExtension, fullPath):
     if os.path.isdir(fullPath):
-        print(fullPath)
         files = os.listdir(fullPath)
         html = buildHTML(files, fullPath)
         preEncodedPayload = html 
@@ -139,10 +138,9 @@ def startServer(port, folder):
         s = buildSocket(port)
 
         data, host, new_socket, conn_count = acceptConnection(s, conn_count)
-        decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
+        #decodedData, fileExtension, strippedPath, splitDecodedData = decodeData(data)
 
         path = f".{folder}"
-        fullPath = f"{path}{strippedPath}"
         
         while m == True:
 
@@ -152,9 +150,11 @@ def startServer(port, folder):
             except TypeError as e:
                 print("Cannot unpack because decodedData function probably returned nothing since connection has been sitting idle")
                 print(e)
-
+            
             path = f".{folder}"
             fullPath = f"{path}{strippedPath}"
+            print(strippedPath)
+            print(fullPath)
             payload, content_length, content_type = buildPayload(fileExtension, fullPath)
             preEncodedResponse = f"HTTP/1.1 200 OK\nContent-Type: {content_type}\nContent-Length: {content_length}\nConnection: close\n\n"
             encodedHeaders = preEncodedResponse.encode("ISO-8859-1")
