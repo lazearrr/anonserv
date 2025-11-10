@@ -32,12 +32,14 @@ def decodeData(data):
         print("list index out of range")
 
 def buildHTML(files, fullPath):
-    if os.path.isdir(fullPath) and fullPath != "./":
-        fullPath = f"{fullPath}/"
     homePage = []
     homePage.append("<html><body><h1>anonserv</h1>")
     for file in files:
-        middle = f"<a href=\"{fullPath}{file}\">{file}</a><br>"
+        serverPath = os.path.join(fullPath, file)
+        if os.path.isdir(serverPath):
+            middle = f"<a href=\"{file}/\">{file}</a><br>"
+        else:
+            middle = f"<a href=\"{file}\">{file}</a><br>"
         homePage.append(middle)
     end = "</body></html>"
     homePage.append(end)
@@ -70,6 +72,7 @@ def buildLog(conn_count, host, splitDecodedData, decodedData, preEncodedResponse
             print("---------------------------------------------------------------------------------------------------------------------")
 
 def buildPayload(fileExtension, fullPath):
+    print("Full Path")
     if os.path.isdir(fullPath):
         files = os.listdir(fullPath)
         html = buildHTML(files, fullPath)
@@ -113,7 +116,7 @@ def buildPayload(fileExtension, fullPath):
         payload, content_length = readFile(fullPath)
 
     elif fileExtension == "":
-        html = buildHTML(files)
+        html =  buildHTML(files)
         preEncodedPayload = html 
         content_type = "text/html"
         payload = preEncodedPayload.encode("ISO-8859-1")
