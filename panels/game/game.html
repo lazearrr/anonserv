@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Metropolis Flight Sim</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- Basic styling for the game -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; /* Hide scrollbars */
+        }
+        
+        /* The canvas will fill the whole screen */
+        canvas {
+            display: block;
+        }
+
+        /* Instructions overlay */
+        #instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            background-color: rgba(0, 0, 0, 0.75);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            z-index: 10;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+
+        #instructions h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: #40c4ff; /* A nice "super" blue */
+        }
+
+        #instructions p {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        
+        #instructions kbd {
+            background-color: #333;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            border: 1px solid #555;
+            font-size: 0.9rem;
+        }
+        
+        /* Simple crosshair for navigation */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #fff;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: difference; /* Ensures visibility on any color */
+            z-index: 11;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Instructions Overlay -->
+    <div id="instructions">
+        <h1>Metropolis Flight Sim</h1>
+        <p>Fly through a vast city like a superhero.</p>
+        <p>
+            <kbd>Click</kbd> to start<br><br>
+            <kbd>Mouse</kbd> to Look / Steer<br>
+            <kbd>W</kbd> / <kbd>S</kbd> - Fly Forward / Backward<br>
+            <kbd>A</kbd> / <kbd>D</kbd> - Strafe Left / Right<br>
+            <kbd>Space</kbd> - Fly Up<br>
+            <kbd>Shift</kbd> - Fly Down<br>
+            <kbd>ESC</kbd> - Release Mouse
+        </p>
+    </div>
+    
+    <!-- Crosshair element -->
+    <div class="crosshair"></div>
+
+    <!-- 
+      Import map for Three.js
+      This tells the browser where to find the "three" module and its addons.
+      We are using version 0.165.0
+    -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <!-- The main game logic -->
+    <script type="module">
+        // Import necessary Three.js components
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- GLOBAL VARIABLES ---
+        let scene, camera, renderer;
+        let controls;
+        let clock;
+        
+        // Player (flight) variables
+        const player = {
+            velocity: new THREE.Vector3(),
+            direction: new THREE.Vector3(),
+            speed: 300.0,      // How fast we accelerate
+            damping: 0.96,     // How quickly we slow down (1.0 = no friction, 0.0 = instant stop)
+            minGroundY: 10,  // Minimum height above the ground
+        };
+
+        // Input state
+        const input = {
+            moveForward: false,
+            moveBackward: false,
+            moveLeft: false,
+            moveRight: false,
+            moveUp: false,
+            moveDown: false
+        };
+        
+        const instructions = document.getElementById('instructions');
+        const crosshair = document.querySelector('.crosshair');
+
+        // --- INITIALIZATION ---
+        
+        function init() {
+            // 1. Create the Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+            // Add exponential fog for atmosphere
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.0002); 
+
+            // 2. Create the Camera (our eyes)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+            camera.position.y = player.minGroundY; // Start at "eye level"
+            
+            // 3. Create the Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            // Enable shadows
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // 4. Setup Clock
+            clock = new THREE.Clock();
+
+            // 5. Setup Controls
+            setupControls();
+
+            // 6. Add Lighting
+            setupLights();
+
+            // 7. Create the World
+            createGround();
+            createMetropolis();
+
+            // 8. Add Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+        }
+
+        function setupControls() {
+            controls = new PointerLockControls(camera, document.body);
+
+            // Event listener to lock pointer when instructions are clicked
+            instructions.addEventListener('click', () => {
+                controls.lock();
+            });
+
+            controls.addEventListener('lock', () => {
+                instructions.style.display = 'none';
+                crosshair.style.display = 'block';
+            });
+
+            controls.addEventListener('unlock', () => {
+                instructions.style.display = 'block';
+                crosshair.style.display = 'none';
+            });
+
+            scene.add(controls.getObject()); // Add the camera (which is inside the controls) to the scene
+        }
+
+        function setupLights() {
+            // Soft ambient light for the whole scene
+            const ambientLight = new THREE.AmbientLight(0xaaaaaa, 1.0);
+            scene.add(ambientLight);
+
+            // A powerful directional light (like the sun)
+            const dirLight = new THREE.DirectionalLight(0xffffff, 3.0);
+            dirLight.position.set(1000, 2000, 1000); // High in the sky
+            dirLight.castShadow = true;
+            
+            // Configure shadow camera to cover our city area
+            const shadowCamSize = 4000;
+            dirLight.shadow.camera.top = shadowCamSize;
+            dirLight.shadow.camera.bottom = -shadowCamSize;
+            dirLight.shadow.camera.left = -shadowCamSize;
+            dirLight.shadow.camera.right = shadowCamSize;
+            dirLight.shadow.camera.near = 0.1;
+            dirLight.shadow.camera.far = 5000;
+            
+            // Increase shadow map size for better quality
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+
+            scene.add(dirLight);
+        }
+
+        function createGround() {
+            // A massive plane for the ground
+            // The city will cover 20,000 x 20,000 units
+            const groundGeo = new THREE.PlaneGeometry(20000, 20000);
+            const groundMat = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 10 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2; // Rotate to be flat
+            ground.receiveShadow = true;
+            scene.add(ground);
+        }
+
+        function createMetropolis() {
+            const buildingCount = 10000; // 10,000 buildings!
+            const citySpread = 10000; // City spreads 10,000 units in each direction from center
+
+            // Use one geometry and one material for all buildings
+            const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
+            const buildingMat = new THREE.MeshPhongMaterial();
+
+            // Create an InstancedMesh. This is *much* faster than 10,000 individual Meshes.
+            const instancedMesh = new THREE.InstancedMesh(buildingGeo, buildingMat, buildingCount);
+            instancedMesh.castShadow = true;
+            instancedMesh.receiveShadow = true;
+
+            const dummy = new THREE.Object3D(); // A helper object to set transforms
+            const color = new THREE.Color();
+
+            for (let i = 0; i < buildingCount; i++) {
+                // --- Position ---
+                // Randomly place buildings within the city spread
+                const x = Math.random() * citySpread * 2 - citySpread; // -10k to +10k
+                const z = Math.random() * citySpread * 2 - citySpread; // -10k to +10k
+
+                // --- Scale (Size) ---
+                const height = Math.random() * 800 + 100; // Height from 100 to 900
+                const width = Math.random() * 100 + 50;  // Width from 50 to 150
+                const depth = Math.random() * 100 + 50;   // Depth from 50 to 150
+                
+                dummy.scale.set(width, height, depth);
+                dummy.position.set(x, height / 2, z); // Position origin is center, so move up by half-height
+                
+                // Apply the transform to the instance
+                dummy.updateMatrix();
+                instancedMesh.setMatrixAt(i, dummy.matrix);
+
+                // --- Color ---
+                // Give each building a random grayscale or slightly colored tint
+                const lightness = 0.3 + Math.random() * 0.4; // 0.3 to 0.7
+                instancedMesh.setColorAt(i, color.setHSL(Math.random() * 0.1, 0.3, lightness));
+            }
+
+            scene.add(instancedMesh);
+        }
+
+        // --- EVENT HANDLERS ---
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onKeyDown(event) {
+            switch (event.code) {
+                case 'KeyW':
+                    input.moveForward = true;
+                    break;
+                case 'KeyS':
+                    input.moveBackward = true;
+                    break;
+                case 'KeyA':
+                    input.moveLeft = true;
+                    break;
+                case 'KeyD':
+                    input.moveRight = true;
+                    break;
+                case 'Space':
+                    input.moveUp = true;
+                    break;
+                case 'ShiftLeft':
+                case 'KeyC': // Add 'C' as an alternative for 'down'
+                    input.moveDown = true;
+                    break;
+            }
+        }
+
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'KeyW':
+                    input.moveForward = false;
+                    break;
+                case 'KeyS':
+                    input.moveBackward = false;
+                    break;
+                case 'KeyA':
+                    input.moveLeft = false;
+                    break;
+                case 'KeyD':
+                    input.moveRight = false;
+                    break;
+                case 'Space':
+                    input.moveUp = false;
+                    break;
+                case 'ShiftLeft':
+                case 'KeyC':
+                    input.moveDown = false;
+                    break;
+            }
+        }
+        
+        // --- GAME LOOP ---
+        
+        function animate() {
+            requestAnimationFrame(animate); // Loop
+
+            const delta = clock.getDelta(); // Time since last frame
+            
+            if (controls.isLocked) {
+                updatePlayerMovement(delta);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function updatePlayerMovement(delta) {
+            // Apply damping (friction/air resistance)
+            // This makes the movement feel smooth and weighty
+            player.velocity.x *= player.damping;
+            player.velocity.z *= player.damping;
+            player.velocity.y *= player.damping;
+
+            // Get movement direction from input
+            player.direction.z = Number(input.moveForward) - Number(input.moveBackward);
+            player.direction.x = Number(input.moveRight) - Number(input.moveLeft);
+            player.direction.y = Number(input.moveUp) - Number(input.moveDown);
+            player.direction.normalize(); // Ensure consistent speed in all directions
+
+            // Calculate acceleration
+            const accel = player.speed * delta;
+            
+            if (input.moveForward || input.moveBackward) {
+                player.velocity.z -= player.direction.z * accel;
+            }
+            if (input.moveLeft || input.moveRight) {
+                player.velocity.x -= player.direction.x * accel;
+            }
+            if (input.moveUp || input.moveDown) {
+                player.velocity.y += player.direction.y * accel;
+            }
+
+            // Apply movement based on camera direction
+            controls.moveRight(-player.velocity.x * delta);
+            controls.moveForward(-player.velocity.z * delta);
+            
+            // Apply vertical movement directly
+            controls.getObject().position.y += (player.velocity.y * delta);
+
+            // Simple ground collision
+            if (controls.getObject().position.y < player.minGroundY) {
+                player.velocity.y = 0;
+                controls.getObject().position.y = player.minGroundY;
+            }
+        }
+
+        // --- START THE GAME ---
+        init();
+        animate();
+
+    </script>
+</body>
+</html>
